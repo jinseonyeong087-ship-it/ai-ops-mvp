@@ -1,0 +1,29 @@
+# secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_rsa
+id_ed25519
+
+# python
+backend/.venv/
+**/__pycache__/
+*.pyc
+
+# node
+frontend/node_modules/
+.next/
+
+# logs/data
+*.log
+uploads/
+results/
+cache/
+
+# editor/os
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
