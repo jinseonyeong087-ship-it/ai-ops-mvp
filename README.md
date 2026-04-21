@@ -1,4 +1,4 @@
-# AI Ops MVP (BestHobby)
+# AI Ops MVP
 
 사내 운영 효율화를 위한 AI 기반 업무 시스템 MVP입니다.
 
