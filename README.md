@@ -24,21 +24,18 @@
 ```bash
 ai-ops-mvp/
 ├─ backend/
-│  ├─ app/
-│  │  ├─ main.py
-│  │  ├─ api/
-│  │  │  ├─ health.py
-│  │  │  └─ ops.py
-│  │  ├─ services/
-│  │  │  └─ ai_service.py
-│  │  └─ models/
-│  │     └─ schemas.py
-│  └─ requirements.txt
 ├─ frontend/
-│  └─ README.md
 ├─ infra/
-│  └─ docker-compose.yml
 ├─ docs/
+│  ├─ INDEX.md
+│  ├─ 00-charter.md
+│  ├─ 01-mvp-scope.md
+│  ├─ 02-domain-rules.md
+│  ├─ db-spec.md
+│  ├─ api-spec-v0.md
+│  ├─ 04-ui-ux-spec.md
+│  ├─ 05-implementation-plan.md
+│  ├─ 06-consistency-check.md
 │  └─ roadmap.md
 ├─ .env.example
 └─ .gitignore
@@ -55,3 +52,6 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 - health check: `GET /health`
 - sample endpoint: `POST /api/ops/ask`
+
+## 설계 문서 시작점
+- `docs/INDEX.md` (문서 순서/수정 규칙)
