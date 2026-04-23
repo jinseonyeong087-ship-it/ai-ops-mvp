@@ -34,10 +34,10 @@
 - [x] 2. `POST /api/inventory/movements` (입출고/조정 등록 + 유효성 검증)
 - [x] 3. `GET /api/inventory/movements` (이력 조회)
 - [x] 4. `POST /api/purchase-orders` (발주 생성)
-- [ ] 5. `GET /api/purchase-orders` (발주 목록)
-- [ ] 6. `GET /api/purchase-orders/{po_id}` (발주 상세)
-- [ ] 7. `PATCH /api/purchase-orders/{po_id}/status` (상태 변경)
-- [ ] 8. `POST /api/purchase-orders/{po_id}/receive` (입고 처리 + 재고 반영)
+- [x] 5. `GET /api/purchase-orders` (발주 목록)
+- [x] 6. `GET /api/purchase-orders/{po_id}` (발주 상세)
+- [x] 7. `PATCH /api/purchase-orders/{po_id}/status` (상태 변경)
+- [x] 8. `POST /api/purchase-orders/{po_id}/receive` (입고 처리 + 재고 반영)
 
 ### 인프라/운영 (MVP 필수)
 - [ ] 9. `docker-compose`에 PostgreSQL 서비스 추가 및 환경변수 연동
