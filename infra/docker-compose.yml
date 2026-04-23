@@ -1,7 +1,41 @@
 services:
-  backend:
-    build:
-      context: ../backend
+  postgres:
+    image: postgres:16-alpine
+    container_name: aiops-postgres
+    restart: unless-stopped
     ports:
-      - "8000:8000"
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ai_ops_mvp_dev}
+      POSTGRES_USER: ${POSTGRES_USER:-aiops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aiops1234}
+    volumes:
+      - aiops_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aiops} -d ${POSTGRES_DB:-ai_ops_mvp_dev}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: python:3.12-slim
+    container_name: aiops-backend
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ../backend:/app
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-aiops}:${POSTGRES_PASSWORD:-aiops1234}@postgres:5432/${POSTGRES_DB:-ai_ops_mvp_dev}
+      API_HOST: ${API_HOST:-0.0.0.0}
+      API_PORT: 8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "pip install --no-cache-dir -r requirements.txt &&
+      uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+volumes:
+  aiops_postgres_data:

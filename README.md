@@ -40,8 +40,8 @@
 - [x] 8. `POST /api/purchase-orders/{po_id}/receive` (입고 처리 + 재고 반영)
 
 ### 인프라/운영 (MVP 필수)
-- [ ] 9. `docker-compose`에 PostgreSQL 서비스 추가 및 환경변수 연동
-- [ ] 10. 백엔드 컨테이너 실행/마이그레이션 명령 정리
+- [x] 9. `docker-compose`에 PostgreSQL 서비스 추가 및 환경변수 연동
+- [x] 10. 백엔드 컨테이너 실행/마이그레이션 명령 정리
 - [ ] 11. `.env.example`와 실제 실행 스크립트 동기화
 - [ ] 12. 기본 에러 핸들링 및 입력 검증 표준화
 - [ ] 13. 핵심 API 스모크 테스트 추가
@@ -94,6 +94,7 @@ ai-ops-mvp/
 │  ├─ 06-consistency-check.md
 │  └─ roadmap.md
 ├─ .env.example
+├─ Makefile
 └─ .gitignore
 ```
 
@@ -115,6 +116,34 @@ PGPASSWORD='<DB_PASSWORD>' psql -h localhost -U <DB_USER> -d ai_ops_mvp_dev -f s
 
 # API 실행
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+## Docker 실행/마이그레이션 명령 (권장)
+```bash
+# 프로젝트 루트에서 실행
+cp .env.example .env
+
+# 컨테이너 기동 (postgres + backend)
+make up
+
+# DB 마이그레이션 적용
+make migrate
+
+# 시드 입력(선택)
+make seed
+
+# 상태/로그 확인
+make ps
+make logs
+
+# 종료
+make down
+```
+
+직접 실행이 필요하면 아래 명령도 동일합니다.
+```bash
+docker compose -f infra/docker-compose.yml --env-file .env up -d
+docker compose -f infra/docker-compose.yml --env-file .env exec backend alembic upgrade head
 ```
 
 ## API 엔드포인트
