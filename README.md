@@ -42,9 +42,9 @@
 ### 인프라/운영 (MVP 필수)
 - [x] 9. `docker-compose`에 PostgreSQL 서비스 추가 및 환경변수 연동
 - [x] 10. 백엔드 컨테이너 실행/마이그레이션 명령 정리
-- [ ] 11. `.env.example`와 실제 실행 스크립트 동기화
-- [ ] 12. 기본 에러 핸들링 및 입력 검증 표준화
-- [ ] 13. 핵심 API 스모크 테스트 추가
+- [x] 11. `.env.example`와 실제 실행 스크립트 동기화
+- [x] 12. 기본 에러 핸들링 및 입력 검증 표준화
+- [x] 13. 핵심 API 스모크 테스트 추가
 
 ### 프론트엔드 (대시보드)
 - [ ] 14. Next.js 초기 프로젝트 구성
@@ -121,7 +121,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ## Docker 실행/마이그레이션 명령 (권장)
 ```bash
 # 프로젝트 루트에서 실행
-cp .env.example .env
+make init-env
 
 # 컨테이너 기동 (postgres + backend)
 make up
@@ -131,6 +131,9 @@ make migrate
 
 # 시드 입력(선택)
 make seed
+
+# 핵심 API 스모크 테스트
+make smoke
 
 # 상태/로그 확인
 make ps
