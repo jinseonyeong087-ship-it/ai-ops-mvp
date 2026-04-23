@@ -30,10 +30,10 @@
 - [x] `GET /api/kpi/summary` 구현
 
 ### 다음 구현 순서 (우선순위)
-- [ ] 1. `GET /api/inventory/items` (검색/필터/정렬/페이지네이션)
-- [ ] 2. `POST /api/inventory/movements` (입출고/조정 등록 + 유효성 검증)
-- [ ] 3. `GET /api/inventory/movements` (이력 조회)
-- [ ] 4. `POST /api/purchase-orders` (발주 생성)
+- [x] 1. `GET /api/inventory/items` (검색/필터/정렬/페이지네이션)
+- [x] 2. `POST /api/inventory/movements` (입출고/조정 등록 + 유효성 검증)
+- [x] 3. `GET /api/inventory/movements` (이력 조회)
+- [x] 4. `POST /api/purchase-orders` (발주 생성)
 - [ ] 5. `GET /api/purchase-orders` (발주 목록)
 - [ ] 6. `GET /api/purchase-orders/{po_id}` (발주 상세)
 - [ ] 7. `PATCH /api/purchase-orders/{po_id}/status` (상태 변경)
