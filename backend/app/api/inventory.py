@@ -1,3 +1,11 @@
+"""재고 도메인 API.
+
+포함 기능:
+- 재고 목록 조회 (검색/필터/정렬/페이지네이션)
+- 재고 변동 등록 (입출고/조정)
+- 재고 변동 이력 조회
+"""
+
 import os
 from datetime import date, datetime
 from typing import Literal
@@ -9,7 +17,12 @@ from pydantic import BaseModel, Field
 router = APIRouter(tags=["inventory"])
 
 
+# -----------------------------
+# 요청/응답 스키마
+# -----------------------------
 class InventoryMovementCreate(BaseModel):
+    """재고 변동 등록 요청 바디."""
+
     product_id: int = Field(ge=1)
     warehouse_id: int = Field(ge=1)
     movement_type: Literal["INBOUND", "OUTBOUND", "ADJUSTMENT", "RETURN"]
@@ -20,6 +33,8 @@ class InventoryMovementCreate(BaseModel):
 
 
 class InventoryMovementCreateResponse(BaseModel):
+    """재고 변동 등록 결과."""
+
     movement_id: int
     product_id: int
     warehouse_id: int
@@ -28,16 +43,27 @@ class InventoryMovementCreateResponse(BaseModel):
     moved_at: datetime
 
 
+# -----------------------------
+# 내부 유틸
+# -----------------------------
 def _get_db_url() -> str:
+    """DATABASE_URL을 읽고 psycopg 연결 문자열로 정규화한다."""
+
     raw = os.getenv("DATABASE_URL")
     if not raw:
         raise HTTPException(status_code=500, detail="DATABASE_URL is not set")
     return raw.replace("+psycopg", "")
 
 
+# -----------------------------
+# API: 재고 목록
+# -----------------------------
+# 재고 조회 화면용 목록 API
+# - 검색(q), 카테고리, 창고, 재고상태 필터 지원
+# - 정렬/페이지네이션 포함
 @router.get("/inventory/items")
 def get_inventory_items(
-    q: str | None = Query(default=None, description="SKU or product name"),
+    q: str | None = Query(default=None, description="SKU 또는 상품명 검색"),
     category: str | None = Query(default=None),
     warehouse_id: int | None = Query(default=None, ge=1),
     stock_status: Literal["NORMAL", "LOW", "OUT"] | None = Query(default=None),
@@ -46,9 +72,12 @@ def get_inventory_items(
     page: int = Query(default=1, ge=1),
     size: int = Query(default=20, ge=1, le=100),
 ):
+    """상품별 재고 스냅샷을 조회한다."""
+
     db_url = _get_db_url()
     offset = (page - 1) * size
 
+    # 동적 WHERE 절 구성 (값은 파라미터 바인딩으로 전달)
     where_clauses: list[str] = ["p.is_active = TRUE"]
     params: list = []
 
@@ -65,6 +94,7 @@ def get_inventory_items(
         where_clauses.append("w.id = %s")
         params.append(warehouse_id)
 
+    # 도메인 규칙 기반 재고 상태 필터
     if stock_status == "LOW":
         where_clauses.append("inv.available_qty > 0 AND inv.available_qty <= p.reorder_point")
     elif stock_status == "OUT":
@@ -74,6 +104,7 @@ def get_inventory_items(
 
     where_sql = " AND ".join(where_clauses)
 
+    # 정렬 컬럼 화이트리스트 (SQL 인젝션 방지)
     order_by_map = {
         "name": "p.name",
         "available_qty": "inv.available_qty",
@@ -91,9 +122,11 @@ def get_inventory_items(
 
     with psycopg.connect(db_url) as conn:
         with conn.cursor() as cur:
+            # 페이지네이션 메타를 위한 total 개수
             cur.execute(f"SELECT COUNT(*) {base_from_sql}", params)
             total = int(cur.fetchone()[0])
 
+            # 실제 목록 조회
             cur.execute(
                 f"""
                 SELECT
@@ -151,10 +184,19 @@ def get_inventory_items(
     }
 
 
+# -----------------------------
+# API: 재고 변동 등록
+# -----------------------------
+# 재고 변동 등록 API
+# - 입고/출고/조정/반품 이벤트를 원장(stock_movements)에 기록
+# - inventory_snapshots를 같은 트랜잭션에서 즉시 동기화
 @router.post("/inventory/movements", status_code=status.HTTP_201_CREATED)
 def create_inventory_movement(payload: InventoryMovementCreate):
+    """입출고/조정 이벤트를 기록하고 snapshot을 동기화한다."""
+
     db_url = _get_db_url()
 
+    # movement_type에 따라 on_hand/available 증감 방향 계산
     delta = payload.qty
     if payload.movement_type == "OUTBOUND":
         delta = -payload.qty
@@ -162,6 +204,7 @@ def create_inventory_movement(payload: InventoryMovementCreate):
     with psycopg.connect(db_url) as conn:
         with conn.transaction():
             with conn.cursor() as cur:
+                # 참조 무결성 선검증
                 cur.execute("SELECT id FROM products WHERE id = %s AND is_active = TRUE", (payload.product_id,))
                 if not cur.fetchone():
                     raise HTTPException(status_code=404, detail="Product not found")
@@ -170,6 +213,7 @@ def create_inventory_movement(payload: InventoryMovementCreate):
                 if not cur.fetchone():
                     raise HTTPException(status_code=404, detail="Warehouse not found")
 
+                # 대상 snapshot row를 잠가 동시성 충돌 방지
                 cur.execute(
                     """
                     SELECT id, on_hand_qty, reserved_qty, available_qty
@@ -181,6 +225,7 @@ def create_inventory_movement(payload: InventoryMovementCreate):
                 )
                 snapshot = cur.fetchone()
 
+                # snapshot이 없으면 최초 생성
                 if not snapshot:
                     cur.execute(
                         """
@@ -195,12 +240,14 @@ def create_inventory_movement(payload: InventoryMovementCreate):
 
                 snapshot_id, on_hand_qty, reserved_qty, available_qty = snapshot
 
+                # 출고 시 가용재고 부족 검증
                 if payload.movement_type == "OUTBOUND" and available_qty < payload.qty:
                     raise HTTPException(status_code=409, detail="Insufficient available stock")
 
                 new_on_hand_qty = on_hand_qty + delta
                 new_available_qty = available_qty + delta
 
+                # snapshot 반영
                 cur.execute(
                     """
                     UPDATE inventory_snapshots
@@ -214,6 +261,7 @@ def create_inventory_movement(payload: InventoryMovementCreate):
                     (new_on_hand_qty, reserved_qty, new_available_qty, snapshot_id),
                 )
 
+                # 원장(이력) 기록
                 cur.execute(
                     """
                     INSERT INTO stock_movements (
@@ -251,6 +299,11 @@ def create_inventory_movement(payload: InventoryMovementCreate):
     }
 
 
+# -----------------------------
+# API: 재고 변동 이력
+# -----------------------------
+# 재고 변동 이력 조회 API
+# - 상품/창고/유형/기간 조건으로 감사(audit)용 조회 가능
 @router.get("/inventory/movements")
 def get_inventory_movements(
     product_id: int | None = Query(default=None, ge=1),
@@ -261,6 +314,8 @@ def get_inventory_movements(
     page: int = Query(default=1, ge=1),
     size: int = Query(default=20, ge=1, le=100),
 ):
+    """재고 변동 이력을 조건별로 조회한다."""
+
     db_url = _get_db_url()
     offset = (page - 1) * size
 

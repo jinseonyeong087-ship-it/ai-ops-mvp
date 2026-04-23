@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# 핵심 API 스모크 테스트 스크립트
+# 목적: 배포/변경 직후 "서비스가 기본적으로 살아있는지" 빠르게 확인
+
 set -euo pipefail
 
 BASE_URL="${1:-http://127.0.0.1:18080}"
@@ -9,6 +12,7 @@ LOG_FILE="/tmp/aiops_smoke_uvicorn.log"
 
 SERVER_PID=""
 cleanup() {
+  # 스크립트 종료 시 백그라운드 서버 정리
   if [[ -n "${SERVER_PID}" ]] && kill -0 "${SERVER_PID}" 2>/dev/null; then
     kill "${SERVER_PID}" || true
   fi
@@ -17,6 +21,7 @@ trap cleanup EXIT
 
 if [[ "${START_SERVER}" == "1" ]]; then
   cd "$WORKDIR"
+  # 로컬 venv 우선 사용, 없으면 시스템 uvicorn 사용
   if [[ -x ".venv/bin/uvicorn" ]]; then
     .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 18080 >"$LOG_FILE" 2>&1 &
   else
@@ -27,6 +32,7 @@ if [[ "${START_SERVER}" == "1" ]]; then
 fi
 
 request() {
+  # 단일 HTTP 요청 유틸: "status code + body" 반환
   local method=$1
   local path=$2
   local body=${3:-}
@@ -48,6 +54,7 @@ request() {
 }
 
 assert_contains() {
+  # 응답 본문에 기대 문자열이 포함되는지 단순 검증
   local haystack=$1
   local needle=$2
   if [[ "$haystack" != *"$needle"* ]]; then

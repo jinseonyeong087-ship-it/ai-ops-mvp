@@ -1,3 +1,12 @@
+"""발주(Purchase Order) 도메인 API.
+
+포함 기능:
+- 발주 생성
+- 발주 목록/상세 조회
+- 발주 상태 변경
+- 발주 입고 처리 + 재고 반영
+"""
+
 import os
 from datetime import date, datetime
 from decimal import Decimal
@@ -9,14 +18,30 @@ from pydantic import BaseModel, Field
 
 router = APIRouter(tags=["purchase-orders"])
 
+# 상태 전이 규칙(도메인 규칙)
+ALLOWED_PO_TRANSITIONS: dict[str, set[str]] = {
+    "DRAFT": {"SUBMITTED", "CANCELED"},
+    "SUBMITTED": {"PARTIAL_RECEIVED", "RECEIVED", "CANCELED"},
+    "PARTIAL_RECEIVED": {"RECEIVED", "CANCELED"},
+    "RECEIVED": set(),
+    "CANCELED": set(),
+}
 
+
+# -----------------------------
+# 요청/응답 스키마
+# -----------------------------
 class PurchaseOrderItemCreate(BaseModel):
+    """발주 생성 시 라인 아이템."""
+
     product_id: int = Field(ge=1)
     ordered_qty: int = Field(gt=0)
     unit_price: Decimal = Field(ge=0)
 
 
 class PurchaseOrderCreateRequest(BaseModel):
+    """발주 생성 요청."""
+
     supplier_name: str = Field(min_length=1, max_length=150)
     order_date: date
     expected_date: date | None = None
@@ -26,6 +51,8 @@ class PurchaseOrderCreateRequest(BaseModel):
 
 
 class PurchaseOrderCreateResult(BaseModel):
+    """발주 생성 응답 데이터."""
+
     id: int
     po_number: str
     status: str
@@ -34,18 +61,48 @@ class PurchaseOrderCreateResult(BaseModel):
 
 
 class PurchaseOrderStatusUpdateRequest(BaseModel):
+    """발주 상태 변경 요청."""
+
     status: Literal["DRAFT", "SUBMITTED", "PARTIAL_RECEIVED", "RECEIVED", "CANCELED"]
 
 
+class PurchaseOrderReceiveItem(BaseModel):
+    """입고 처리 요청의 아이템 단위."""
+
+    product_id: int = Field(ge=1)
+    received_qty: int = Field(gt=0)
+
+
+class PurchaseOrderReceiveRequest(BaseModel):
+    """입고 처리 요청."""
+
+    received_at: datetime | None = None
+    items: list[PurchaseOrderReceiveItem] = Field(min_length=1)
+    note: str | None = None
+
+
+# -----------------------------
+# 내부 유틸
+# -----------------------------
 def _get_db_url() -> str:
+    """DATABASE_URL을 읽고 psycopg 연결 문자열로 정규화한다."""
+
     raw = os.getenv("DATABASE_URL")
     if not raw:
         raise HTTPException(status_code=500, detail="DATABASE_URL is not set")
     return raw.replace("+psycopg", "")
 
 
+# -----------------------------
+# API: 발주 생성
+# -----------------------------
+# 발주 생성 API
+# - 헤더/라인을 함께 생성하고 총액(total_amount) 계산
+# - 상품/창고 유효성 사전 검증
 @router.post("/purchase-orders", status_code=status.HTTP_201_CREATED)
 def create_purchase_order(payload: PurchaseOrderCreateRequest):
+    """발주 헤더/라인을 생성하고 총액을 계산해 저장한다."""
+
     db_url = _get_db_url()
 
     if payload.expected_date and payload.expected_date < payload.order_date:
@@ -54,10 +111,12 @@ def create_purchase_order(payload: PurchaseOrderCreateRequest):
     with psycopg.connect(db_url) as conn:
         with conn.transaction():
             with conn.cursor() as cur:
+                # 창고 유효성 검증
                 cur.execute("SELECT id FROM warehouses WHERE id = %s AND is_active = TRUE", (payload.warehouse_id,))
                 if not cur.fetchone():
                     raise HTTPException(status_code=404, detail="Warehouse not found")
 
+                # 상품 유효성 검증
                 product_ids = list({item.product_id for item in payload.items})
                 cur.execute(
                     "SELECT id FROM products WHERE is_active = TRUE AND id = ANY(%s)",
@@ -68,10 +127,12 @@ def create_purchase_order(payload: PurchaseOrderCreateRequest):
                 if missing:
                     raise HTTPException(status_code=404, detail=f"Products not found: {missing}")
 
+                # 발주번호는 sequence를 먼저 확보해서 생성
                 cur.execute("SELECT nextval(pg_get_serial_sequence('purchase_orders', 'id'))")
                 po_id = int(cur.fetchone()[0])
                 po_number = f"PO-{payload.order_date.strftime('%Y%m%d')}-{po_id:06d}"
 
+                # 헤더 생성
                 cur.execute(
                     """
                     INSERT INTO purchase_orders (
@@ -93,6 +154,7 @@ def create_purchase_order(payload: PurchaseOrderCreateRequest):
                 )
                 po_row = cur.fetchone()
 
+                # 라인 생성 + 총액 계산
                 total_amount = Decimal("0")
                 for item in payload.items:
                     line_amount = (Decimal(item.ordered_qty) * item.unit_price).quantize(Decimal("0.01"))
@@ -106,6 +168,7 @@ def create_purchase_order(payload: PurchaseOrderCreateRequest):
                         (po_id, item.product_id, item.ordered_qty, item.unit_price, line_amount),
                     )
 
+                # 헤더 총액 동기화
                 total_amount = total_amount.quantize(Decimal("0.01"))
                 cur.execute(
                     "UPDATE purchase_orders SET total_amount = %s, updated_at = now() WHERE id = %s",
@@ -123,6 +186,11 @@ def create_purchase_order(payload: PurchaseOrderCreateRequest):
     }
 
 
+# -----------------------------
+# API: 발주 목록
+# -----------------------------
+# 발주 목록 조회 API
+# - 상태/거래처/기간 필터 + 페이지네이션 지원
 @router.get("/purchase-orders")
 def get_purchase_orders(
     status_filter: Literal["DRAFT", "SUBMITTED", "PARTIAL_RECEIVED", "RECEIVED", "CANCELED"] | None = Query(default=None, alias="status"),
@@ -132,6 +200,8 @@ def get_purchase_orders(
     page: int = Query(default=1, ge=1),
     size: int = Query(default=20, ge=1, le=100),
 ):
+    """발주 목록을 조건별로 조회한다."""
+
     db_url = _get_db_url()
     offset = (page - 1) * size
 
@@ -205,8 +275,15 @@ def get_purchase_orders(
     }
 
 
+# -----------------------------
+# API: 발주 상세
+# -----------------------------
+# 발주 상세 조회 API
+# - 헤더 + 라인 아이템을 한 번에 반환
 @router.get("/purchase-orders/{po_id}")
 def get_purchase_order_detail(po_id: int):
+    """발주 헤더 + 라인 아이템 상세를 조회한다."""
+
     db_url = _get_db_url()
 
     with psycopg.connect(db_url) as conn:
@@ -289,21 +366,22 @@ def get_purchase_order_detail(po_id: int):
     }
 
 
+# -----------------------------
+# API: 상태 변경
+# -----------------------------
+# 발주 상태 변경 API
+# - 정의된 상태 전이 규칙(ALLOWED_PO_TRANSITIONS)만 허용
+# - 같은 상태로의 요청은 멱등 처리
 @router.patch("/purchase-orders/{po_id}/status")
 def update_purchase_order_status(po_id: int, payload: PurchaseOrderStatusUpdateRequest):
-    db_url = _get_db_url()
+    """발주 상태를 전이 규칙에 맞게 변경한다."""
 
-    allowed_transitions = {
-        "DRAFT": {"SUBMITTED", "CANCELED"},
-        "SUBMITTED": {"PARTIAL_RECEIVED", "RECEIVED", "CANCELED"},
-        "PARTIAL_RECEIVED": {"RECEIVED", "CANCELED"},
-        "RECEIVED": set(),
-        "CANCELED": set(),
-    }
+    db_url = _get_db_url()
 
     with psycopg.connect(db_url) as conn:
         with conn.transaction():
             with conn.cursor() as cur:
+                # 현재 상태를 잠그고 조회 (동시 변경 방지)
                 cur.execute(
                     "SELECT status FROM purchase_orders WHERE id = %s FOR UPDATE",
                     (po_id,),
@@ -315,6 +393,7 @@ def update_purchase_order_status(po_id: int, payload: PurchaseOrderStatusUpdateR
                 current_status = row[0]
                 target_status = payload.status
 
+                # 동일 상태 요청은 멱등하게 현재 값 반환
                 if current_status == target_status:
                     cur.execute(
                         "SELECT id, status, updated_at FROM purchase_orders WHERE id = %s",
@@ -329,7 +408,7 @@ def update_purchase_order_status(po_id: int, payload: PurchaseOrderStatusUpdateR
                         }
                     }
 
-                if target_status not in allowed_transitions.get(current_status, set()):
+                if target_status not in ALLOWED_PO_TRANSITIONS.get(current_status, set()):
                     raise HTTPException(
                         status_code=409,
                         detail=f"Invalid status transition: {current_status} -> {target_status}",
@@ -356,24 +435,22 @@ def update_purchase_order_status(po_id: int, payload: PurchaseOrderStatusUpdateR
     }
 
 
-class PurchaseOrderReceiveItem(BaseModel):
-    product_id: int = Field(ge=1)
-    received_qty: int = Field(gt=0)
-
-
-class PurchaseOrderReceiveRequest(BaseModel):
-    received_at: datetime | None = None
-    items: list[PurchaseOrderReceiveItem] = Field(min_length=1)
-    note: str | None = None
-
-
+# -----------------------------
+# API: 입고 처리
+# -----------------------------
+# 발주 입고 처리 API
+# - 입고수량 누적, 재고 원장 기록, 스냅샷 반영을 원자적으로 수행
+# - 누적 입고수량 기준으로 PARTIAL_RECEIVED / RECEIVED 자동 판정
 @router.post("/purchase-orders/{po_id}/receive")
 def receive_purchase_order(po_id: int, payload: PurchaseOrderReceiveRequest):
+    """입고 처리 + 재고 반영 + 발주 상태 자동 재계산을 수행한다."""
+
     db_url = _get_db_url()
 
     with psycopg.connect(db_url) as conn:
         with conn.transaction():
             with conn.cursor() as cur:
+                # 발주 헤더 잠금
                 cur.execute(
                     """
                     SELECT id, status, warehouse_id
@@ -391,6 +468,7 @@ def receive_purchase_order(po_id: int, payload: PurchaseOrderReceiveRequest):
                 if po_status not in {"SUBMITTED", "PARTIAL_RECEIVED"}:
                     raise HTTPException(status_code=409, detail=f"Cannot receive in status: {po_status}")
 
+                # 발주 라인 잠금
                 cur.execute(
                     """
                     SELECT id, product_id, ordered_qty, received_qty
@@ -414,6 +492,8 @@ def receive_purchase_order(po_id: int, payload: PurchaseOrderReceiveRequest):
                 for req_item in payload.items:
                     item_info = item_map[req_item.product_id]
                     new_received = item_info["received_qty"] + req_item.received_qty
+
+                    # 과입고 방지
                     if new_received > item_info["ordered_qty"]:
                         raise HTTPException(
                             status_code=409,
@@ -424,6 +504,7 @@ def receive_purchase_order(po_id: int, payload: PurchaseOrderReceiveRequest):
                             ),
                         )
 
+                    # 라인 입고수량 누적
                     cur.execute(
                         """
                         UPDATE purchase_order_items
@@ -434,6 +515,7 @@ def receive_purchase_order(po_id: int, payload: PurchaseOrderReceiveRequest):
                         (new_received, item_info["id"]),
                     )
 
+                    # 재고 원장 기록 (INBOUND)
                     cur.execute(
                         """
                         INSERT INTO stock_movements (
@@ -457,6 +539,7 @@ def receive_purchase_order(po_id: int, payload: PurchaseOrderReceiveRequest):
                         ),
                     )
 
+                    # snapshot 잠금/생성 후 재고 반영
                     cur.execute(
                         """
                         SELECT id, on_hand_qty, reserved_qty, available_qty
@@ -499,6 +582,7 @@ def receive_purchase_order(po_id: int, payload: PurchaseOrderReceiveRequest):
 
                     total_received_qty += req_item.received_qty
 
+                # 발주 전체 수량으로 상태 재계산
                 cur.execute(
                     """
                     SELECT
