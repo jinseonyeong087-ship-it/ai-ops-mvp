@@ -1,3 +1,4 @@
+import Link from "next/link";
 import styles from "./page.module.css";
 import {
   fetchInventoryItems,
@@ -5,6 +6,7 @@ import {
   type InventoryItem,
   type StockStatus,
 } from "@/lib/api";
+import AiAskPanel from "./components/ai-ask-panel";
 
 interface DashboardData {
   kpi: Awaited<ReturnType<typeof fetchKpiSummary>> | null;
@@ -82,8 +84,13 @@ export default async function Home() {
     <div className={styles.page}>
       <main className={styles.main}>
         <header className={styles.header}>
-          <h1>AI Ops Dashboard</h1>
-          <p>핵심 KPI, 재고 현황, 위험 항목을 한 화면에서 확인합니다.</p>
+          <div>
+            <h1>AI Ops Dashboard</h1>
+            <p>핵심 KPI, 재고 현황, 위험 항목을 한 화면에서 확인합니다.</p>
+          </div>
+          <Link href="/purchase-orders" className={styles.headerLink}>
+            발주 관리 →
+          </Link>
         </header>
 
         {errorMessage ? <p className={styles.errorBox}>{errorMessage}</p> : null}
@@ -194,6 +201,8 @@ export default async function Home() {
             </ul>
           </aside>
         </section>
+
+        <AiAskPanel />
       </main>
     </div>
   );

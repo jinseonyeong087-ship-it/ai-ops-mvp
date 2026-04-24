@@ -1,0 +1,65 @@
+.panel {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.description {
+  color: #4b5563;
+  font-size: 0.92rem;
+}
+
+.form {
+  display: grid;
+  gap: 8px;
+}
+
+.form textarea {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px;
+  resize: vertical;
+  font: inherit;
+}
+
+.form button {
+  width: fit-content;
+  border: 0;
+  border-radius: 10px;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+
+.form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #b91c1c;
+  font-size: 0.9rem;
+}
+
+.answerBox {
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.answerTitle {
+  font-weight: 600;
+}
+
+.answerBox small {
+  color: #64748b;
+}

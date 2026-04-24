@@ -1,0 +1,81 @@
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+  display: grid;
+  gap: 12px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header p {
+  color: #475569;
+  margin-top: 4px;
+}
+
+.backLink {
+  color: #2563eb;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.summary > div {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.summary span {
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.panel h2 {
+  margin-bottom: 10px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid #f1f5f9;
+  padding: 10px 8px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table th {
+  color: #475569;
+  background: #f8fafc;
+}
+
+.number {
+  text-align: right !important;
+}
+
+@media (max-width: 800px) {
+  .summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

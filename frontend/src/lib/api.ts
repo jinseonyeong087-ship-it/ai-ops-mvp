@@ -59,6 +59,62 @@ export interface InventoryItemsResponse {
   };
 }
 
+export type PurchaseOrderStatus =
+  | "DRAFT"
+  | "SUBMITTED"
+  | "PARTIAL_RECEIVED"
+  | "RECEIVED"
+  | "CANCELED";
+
+export interface PurchaseOrderSummary {
+  id: number;
+  po_number: string;
+  supplier_name: string;
+  status: PurchaseOrderStatus;
+  order_date: string | null;
+  expected_date: string | null;
+  total_amount: number;
+  warehouse_id: number;
+}
+
+export interface PurchaseOrdersResponse {
+  data: PurchaseOrderSummary[];
+  meta: {
+    page: number;
+    size: number;
+    total: number;
+  };
+}
+
+export interface PurchaseOrderDetailItem {
+  id: number;
+  product_id: number;
+  sku: string;
+  name: string;
+  ordered_qty: number;
+  received_qty: number;
+  unit_price: number;
+  line_amount: number;
+}
+
+export interface PurchaseOrderDetailResponse {
+  data: {
+    id: number;
+    po_number: string;
+    supplier_name: string;
+    status: PurchaseOrderStatus;
+    order_date: string | null;
+    expected_date: string | null;
+    warehouse_id: number;
+    total_amount: number;
+    memo: string | null;
+    created_by: string | null;
+    created_at: string | null;
+    updated_at: string | null;
+    items: PurchaseOrderDetailItem[];
+  };
+}
+
 function getApiBaseUrl(): string {
   const envBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL;
   return (envBase ?? DEFAULT_API_BASE_URL).replace(/\/$/, "");
@@ -100,4 +156,69 @@ export async function fetchInventoryItems(params?: {
   });
 
   return safeFetchJson<InventoryItemsResponse>(`/inventory/items?${query.toString()}`);
+}
+
+export async function fetchPurchaseOrders(params?: {
+  page?: number;
+  size?: number;
+  status?: PurchaseOrderStatus;
+}): Promise<PurchaseOrdersResponse> {
+  const query = new URLSearchParams({
+    page: String(params?.page ?? 1),
+    size: String(params?.size ?? 20),
+  });
+
+  if (params?.status) {
+    query.set("status", params.status);
+  }
+
+  return safeFetchJson<PurchaseOrdersResponse>(`/purchase-orders?${query.toString()}`);
+}
+
+export async function fetchPurchaseOrderDetail(poId: number): Promise<PurchaseOrderDetailResponse> {
+  return safeFetchJson<PurchaseOrderDetailResponse>(`/purchase-orders/${poId}`);
+}
+
+export async function receivePurchaseOrder(poId: number, items: Array<{ product_id: number; received_qty: number }>) {
+  const url = `${getApiBaseUrl()}/purchase-orders/${poId}/receive`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      items,
+      note: "프론트엔드 수동 입고 처리",
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`입고 처리 실패 (${response.status})`);
+  }
+
+  return response.json();
+}
+
+export interface AskOpsResponse {
+  answer: string;
+  source: string;
+}
+
+export async function askOps(question: string): Promise<AskOpsResponse> {
+  const url = `${getApiBaseUrl()}/ops/ask`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ question }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`AI 질의 실패 (${response.status})`);
+  }
+
+  return (await response.json()) as AskOpsResponse;
 }

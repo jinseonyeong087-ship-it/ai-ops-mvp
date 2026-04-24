@@ -1,0 +1,24 @@
+.box {
+  display: grid;
+  gap: 8px;
+}
+
+.button {
+  border: 0;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.message {
+  font-size: 0.9rem;
+  color: #334155;
+}
