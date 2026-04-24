@@ -1,0 +1,38 @@
+.shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  background: #dfe3ec;
+}
+.sidebar { background:#4968a8; color:#fff; padding:16px 12px; }
+.logo { font-size:1.1rem; font-weight:800; margin-bottom:18px; }
+.menu, .menuActive { display:block; padding:10px 12px; border-radius:8px; margin-bottom:6px; font-size:0.92rem; }
+.menuActive { background:#243d70; font-weight:700; }
+.workspace { display:grid; grid-template-rows:56px 1fr; }
+.topbar { background:#f4f6fb; border-bottom:1px solid #d0d6e2; display:flex; align-items:center; justify-content:space-between; padding:8px 16px; }
+.search { width:min(420px,100%); border:1px solid #bcc5d5; border-radius:20px; padding:7px 12px; background:#fff; }
+.topActions { display:flex; gap:12px; color:#374151; font-size:0.9rem; }
+.page { width:min(1400px,100%); margin:0 auto; padding:12px; display:grid; gap:12px; }
+.sectionCard { background:#edf0f6; border:1px solid #d5dbe8; border-radius:10px; padding:12px; }
+.header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.backLink { color:#1f4ea3; font-weight:700; }
+.panel { background:#fff; border:1px solid #d9deea; border-radius:8px; padding:10px; overflow:auto; }
+.formGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.field { display:grid; gap:6px; }
+.field input,.field select,.field textarea { border:1px solid #c8d1e2; border-radius:8px; padding:8px; background:#fff; }
+.actions { display:flex; justify-content:flex-end; margin-top:8px; }
+.primaryBtn { background:#2d5fc0; color:#fff; border:0; border-radius:8px; padding:8px 12px; font-weight:700; }
+.table { width:100%; border-collapse:collapse; }
+.table th,.table td { border-bottom:1px solid #eef2f8; padding:8px; text-align:left; white-space:nowrap; font-size:0.88rem; }
+.table th { background:#f3f5fa; color:#546079; }
+.calendar { width:100%; min-height:320px; border:1px dashed #b8c2d7; border-radius:10px; display:grid; place-items:center; color:#64748b; background:#fff; }
+.calendarPanel { background:#fff; border:1px solid #d9deea; border-radius:10px; padding:10px; }
+.calendarHeader { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.calendarHeader button { border:1px solid #cbd5e1; background:#fff; border-radius:6px; padding:4px 8px; }
+.calendarWeekRow { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); margin-bottom:6px; }
+.calendarWeekRow div { text-align:center; font-size:0.82rem; color:#64748b; }
+.calendarGrid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px; }
+.calendarCell, .calendarCellToday { min-height:46px; border:1px solid #e2e8f0; border-radius:8px; display:grid; place-items:center; background:#fff; }
+.calendarCellToday { background:#dbeafe; border-color:#93c5fd; font-weight:700; color:#1e3a8a; }
+@media (max-width: 1000px){ .shell{grid-template-columns:1fr;} .sidebar nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;} .menu,.menuActive{margin:0;text-align:center;font-size:0.82rem;} }
+@media (max-width: 768px){ .topbar{flex-direction:column;align-items:stretch;gap:8px;height:auto;} .formGrid{grid-template-columns:1fr;} }

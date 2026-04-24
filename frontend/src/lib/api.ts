@@ -222,3 +222,118 @@ export async function askOps(question: string): Promise<AskOpsResponse> {
 
   return (await response.json()) as AskOpsResponse;
 }
+
+export interface MetaOptionsResponse {
+  data: {
+    categories: string[];
+    units: string[];
+    channels: string[];
+    job_types: string[];
+    job_statuses: string[];
+    warehouses: Array<{ id: number; name: string }>;
+  };
+}
+
+export interface SalesDailyRow {
+  sales_date: string;
+  channel: string;
+  order_count: number;
+  item_qty: number;
+  gross_sales: number;
+  discount_amount: number;
+  net_sales: number;
+}
+
+export interface SalesDailyResponse {
+  data: SalesDailyRow[];
+  meta: { page: number; size: number; total: number };
+}
+
+export interface ScheduleRow {
+  id: number;
+  job_name: string;
+  job_type: string;
+  status: string;
+  next_run_at: string | null;
+  payload: Record<string, unknown>;
+}
+
+export interface SchedulesResponse {
+  data: ScheduleRow[];
+  meta: { page: number; size: number; total: number };
+}
+
+export async function fetchMetaOptions(): Promise<MetaOptionsResponse> {
+  return safeFetchJson<MetaOptionsResponse>("/meta/options");
+}
+
+export async function createProduct(payload: {
+  sku: string;
+  name: string;
+  category: string;
+  unit: string;
+  safety_stock: number;
+  reorder_point: number;
+  warehouse_id: number;
+  initial_qty: number;
+}) {
+  const response = await fetch(`${getApiBaseUrl()}/products`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) throw new Error(`상품 등록 실패 (${response.status})`);
+  return response.json();
+}
+
+export async function fetchSalesDaily(params?: { page?: number; size?: number }): Promise<SalesDailyResponse> {
+  const query = new URLSearchParams({
+    page: String(params?.page ?? 1),
+    size: String(params?.size ?? 15),
+  });
+  return safeFetchJson<SalesDailyResponse>(`/sales/daily?${query.toString()}`);
+}
+
+export async function upsertSalesDaily(payload: {
+  sales_date: string;
+  channel: string;
+  order_count: number;
+  item_qty: number;
+  gross_sales: number;
+  discount_amount: number;
+}) {
+  const response = await fetch(`${getApiBaseUrl()}/sales/daily`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) throw new Error(`판매현황 저장 실패 (${response.status})`);
+  return response.json();
+}
+
+export async function fetchSchedules(params?: { page?: number; size?: number }): Promise<SchedulesResponse> {
+  const query = new URLSearchParams({
+    page: String(params?.page ?? 1),
+    size: String(params?.size ?? 15),
+  });
+  return safeFetchJson<SchedulesResponse>(`/schedules?${query.toString()}`);
+}
+
+export async function createSchedule(payload: {
+  job_name: string;
+  job_type: string;
+  status: string;
+  next_run_at: string;
+  payload_note?: string;
+}) {
+  const response = await fetch(`${getApiBaseUrl()}/schedules`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) throw new Error(`스케줄 저장 실패 (${response.status})`);
+  return response.json();
+}

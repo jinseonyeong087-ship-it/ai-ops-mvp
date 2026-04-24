@@ -47,8 +47,18 @@ function buildRiskItems(items: InventoryItem[]): InventoryItem[] {
       const rank = { OUT: 0, LOW: 1, NORMAL: 2 };
       return rank[a.stock_status] - rank[b.stock_status] || a.available_qty - b.available_qty;
     })
-    .slice(0, 6);
+    .slice(0, 8);
 }
+
+const SIDE_MENUS = [
+  { label: "Dashboard", href: "/" },
+  { label: "상품 등록", href: "/products/new" },
+  { label: "주문/배송", href: "/purchase-orders" },
+  { label: "스케줄", href: "/schedule" },
+  { label: "판매 현황", href: "/sales" },
+  { label: "회원관리", href: "#" },
+  { label: "고객문의", href: "#" },
+];
 
 export default function Home() {
   const [kpi, setKpi] = useState<KpiSummaryResponse | null>(null);
@@ -71,11 +81,7 @@ export default function Home() {
         setKpi(kpiResult);
       } catch (error) {
         if (cancelled) return;
-        setErrorMessage(
-          error instanceof Error
-            ? `${error.message} · 백엔드 실행 상태와 API_BASE_URL을 확인하세요.`
-            : "대시보드 데이터를 불러오지 못했습니다.",
-        );
+        setErrorMessage(error instanceof Error ? error.message : "대시보드 데이터를 불러오지 못했습니다.");
       }
     }
 
@@ -121,44 +127,61 @@ export default function Home() {
   );
 
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <header className={styles.header}>
-          <div>
-            <h1>AI Ops Dashboard</h1>
-            <p>핵심 KPI, 재고 현황, 위험 항목을 한 화면에서 확인합니다.</p>
+    <div className={styles.shell}>
+      <aside className={styles.sidebar}>
+        <div className={styles.logo}>AI OPS</div>
+        <nav>
+          {SIDE_MENUS.map((menu) => (
+            <Link key={menu.label} href={menu.href} className={menu.href === "/" ? styles.menuActive : styles.menu}>
+              {menu.label}
+            </Link>
+          ))}
+        </nav>
+      </aside>
+
+      <div className={styles.workspace}>
+        <header className={styles.topbar}>
+          <input className={styles.search} placeholder="검색 (SKU/상품명/발주번호)" />
+          <div className={styles.topActions}>
+            <span>🔔</span>
+            <span>admin ▾</span>
           </div>
-          <Link href="/purchase-orders" className={styles.headerLink}>
-            발주 관리 →
-          </Link>
         </header>
 
-        {errorMessage ? <p className={styles.errorBox}>{errorMessage}</p> : null}
+        <main className={styles.main}>
+          <section className={styles.sectionCard}>
+            <div className={styles.sectionHeaderRow}>
+              <h1>Dashboard</h1>
+              <Link href="/purchase-orders" className={styles.quickButton}>
+                발주 관리 →
+              </Link>
+            </div>
+            {errorMessage ? <p className={styles.errorBox}>{errorMessage}</p> : null}
 
-        <section className={styles.kpiGrid} aria-label="KPI 요약">
-          <article className={styles.kpiCard}>
-            <h2>총 SKU</h2>
-            <strong>{formatNumber(kpi?.data.inventory.total_sku ?? 0)}</strong>
-          </article>
-          <article className={styles.kpiCard}>
-            <h2>가용 재고 합계</h2>
-            <strong>{formatNumber(kpi?.data.inventory.total_on_hand_qty ?? 0)}</strong>
-          </article>
-          <article className={styles.kpiCard}>
-            <h2>순매출</h2>
-            <strong>{formatCurrency(kpi?.data.sales.net_sales ?? 0)}</strong>
-          </article>
-          <article className={styles.kpiCard}>
-            <h2>발주 지연 건수</h2>
-            <strong>{formatNumber(kpi?.data.purchase.overdue_count ?? 0)}</strong>
-          </article>
-        </section>
+            <div className={styles.kpiGrid}>
+              <article className={styles.kpiCard}>
+                <h2>총 SKU</h2>
+                <strong>{formatNumber(kpi?.data.inventory.total_sku ?? 0)}</strong>
+              </article>
+              <article className={styles.kpiCard}>
+                <h2>가용 재고 합계</h2>
+                <strong>{formatNumber(kpi?.data.inventory.total_on_hand_qty ?? 0)}</strong>
+              </article>
+              <article className={styles.kpiCard}>
+                <h2>순매출</h2>
+                <strong>{formatCurrency(kpi?.data.sales.net_sales ?? 0)}</strong>
+              </article>
+              <article className={styles.kpiCard}>
+                <h2>발주 지연 건수</h2>
+                <strong>{formatNumber(kpi?.data.purchase.overdue_count ?? 0)}</strong>
+              </article>
+            </div>
+          </section>
 
-        <section className={styles.contentGrid}>
-          <article className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <h2>재고 테이블</h2>
-              <p>최신 업데이트 순</p>
+          <section className={styles.sectionCard}>
+            <div className={styles.sectionHeaderRow}>
+              <h2>재고 리스트</h2>
+              <span className={styles.dim}>최신 업데이트 순</span>
             </div>
             <div className={styles.tableWrap}>
               <table>
@@ -198,6 +221,7 @@ export default function Home() {
                 </tbody>
               </table>
             </div>
+
             <div className={styles.pagination}>
               <button
                 type="button"
@@ -224,14 +248,13 @@ export default function Home() {
                 다음
               </button>
             </div>
-          </article>
+          </section>
 
-          <aside className={styles.panel}>
-            <div className={styles.panelHeader}>
+          <section className={styles.sectionCard}>
+            <div className={styles.sectionHeaderRow}>
               <h2>재고 위험 위젯</h2>
-              <p>품절/품절 임박 우선 표시</p>
+              <span className={styles.dim}>품절/품절 임박 우선 표시</span>
             </div>
-
             <div className={styles.riskSummary}>
               <div>
                 <span>품절</span>
@@ -242,7 +265,6 @@ export default function Home() {
                 <strong>{formatNumber(kpi?.data.inventory.low_stock_sku ?? 0)}</strong>
               </div>
             </div>
-
             <ul className={styles.riskList}>
               {riskItems.length === 0 ? (
                 <li className={styles.emptyRisk}>현재 위험 재고가 없습니다.</li>
@@ -265,11 +287,11 @@ export default function Home() {
                 ))
               )}
             </ul>
-          </aside>
-        </section>
+          </section>
 
-        <AiAskPanel />
-      </main>
+          <AiAskPanel />
+        </main>
+      </div>
     </div>
   );
 }

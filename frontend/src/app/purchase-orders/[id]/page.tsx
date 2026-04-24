@@ -12,6 +12,16 @@ const STATUS_LABEL: Record<PurchaseOrderStatus, string> = {
   CANCELED: "취소",
 };
 
+const SIDE_MENUS = [
+  { label: "Dashboard", href: "/" },
+  { label: "상품 등록", href: "/products/new" },
+  { label: "주문/배송", href: "/purchase-orders" },
+  { label: "스케줄", href: "/schedule" },
+  { label: "판매 현황", href: "/sales" },
+  { label: "회원관리", href: "#" },
+  { label: "고객문의", href: "#" },
+];
+
 const amountFormatter = new Intl.NumberFormat("ko-KR", {
   style: "currency",
   currency: "KRW",
@@ -48,91 +58,122 @@ export default async function PurchaseOrderDetailPage({
   const pagedItems = po.items.slice((itemPage - 1) * itemPageSize, itemPage * itemPageSize);
 
   return (
-    <main className={styles.page}>
-      <header className={styles.header}>
-        <div>
-          <h1>{po.po_number}</h1>
-          <p>
-            {po.supplier_name} · 상태: {STATUS_LABEL[po.status]}
-          </p>
-        </div>
-        <Link href="/purchase-orders" className={styles.backLink}>
-          ← 발주 목록
-        </Link>
-      </header>
-
-      <section className={styles.summary}>
-        <div>
-          <span>발주일</span>
-          <strong>{po.order_date ?? "-"}</strong>
-        </div>
-        <div>
-          <span>입고 예정일</span>
-          <strong>{po.expected_date ?? "-"}</strong>
-        </div>
-        <div>
-          <span>총액</span>
-          <strong>{amountFormatter.format(po.total_amount)}</strong>
-        </div>
-        <div>
-          <span>창고</span>
-          <strong>{po.warehouse_id}</strong>
-        </div>
-      </section>
-
-      <section className={styles.panel}>
-        <h2>입고 처리</h2>
-        <ReceiveForm poId={po.id} status={po.status} items={po.items} />
-      </section>
-
-      <section className={styles.panel}>
-        <h2>발주 품목</h2>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>SKU</th>
-              <th>상품명</th>
-              <th className={styles.number}>발주수량</th>
-              <th className={styles.number}>입고수량</th>
-              <th className={styles.number}>단가</th>
-              <th className={styles.number}>라인금액</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pagedItems.map((item) => (
-              <tr key={item.id}>
-                <td>{item.sku}</td>
-                <td>{item.name}</td>
-                <td className={styles.number}>{item.ordered_qty}</td>
-                <td className={styles.number}>{item.received_qty}</td>
-                <td className={styles.number}>{amountFormatter.format(item.unit_price)}</td>
-                <td className={styles.number}>{amountFormatter.format(item.line_amount)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div className={styles.pagination}>
-          <Link href={`/purchase-orders/${po.id}?page=${Math.max(1, itemGroupStart - 10)}`} aria-disabled={itemGroupStart <= 1}>
-            이전
-          </Link>
-          {itemPageNumbers.map((pageNo) => (
+    <div className={styles.shell}>
+      <aside className={styles.sidebar}>
+        <div className={styles.logo}>AI OPS</div>
+        <nav>
+          {SIDE_MENUS.map((menu) => (
             <Link
-              key={pageNo}
-              href={`/purchase-orders/${po.id}?page=${pageNo}`}
-              className={pageNo === itemPage ? styles.activePage : undefined}
+              key={menu.label}
+              href={menu.href}
+              className={menu.href === "/purchase-orders" ? styles.menuActive : styles.menu}
             >
-              {pageNo}
+              {menu.label}
             </Link>
           ))}
-          <Link
-            href={`/purchase-orders/${po.id}?page=${Math.min(itemTotalPages, itemGroupEnd + 1)}`}
-            aria-disabled={itemGroupEnd >= itemTotalPages}
-          >
-            다음
-          </Link>
-        </div>
-      </section>
-    </main>
+        </nav>
+      </aside>
+
+      <div className={styles.workspace}>
+        <header className={styles.topbar}>
+          <input className={styles.search} placeholder="검색 (SKU/상품명/발주번호)" />
+          <div className={styles.topActions}>
+            <span>🔔</span>
+            <span>admin ▾</span>
+          </div>
+        </header>
+
+        <main className={styles.page}>
+          <section className={styles.sectionCard}>
+            <header className={styles.header}>
+              <div>
+                <h1>{po.po_number}</h1>
+                <p>
+                  {po.supplier_name} · 상태: {STATUS_LABEL[po.status]}
+                </p>
+              </div>
+              <Link href="/purchase-orders" className={styles.backLink}>
+                ← 발주 목록
+              </Link>
+            </header>
+
+            <section className={styles.summary}>
+              <div>
+                <span>발주일</span>
+                <strong>{po.order_date ?? "-"}</strong>
+              </div>
+              <div>
+                <span>입고 예정일</span>
+                <strong>{po.expected_date ?? "-"}</strong>
+              </div>
+              <div>
+                <span>총액</span>
+                <strong>{amountFormatter.format(po.total_amount)}</strong>
+              </div>
+              <div>
+                <span>창고</span>
+                <strong>{po.warehouse_id}</strong>
+              </div>
+            </section>
+          </section>
+
+          <section className={styles.sectionCard}>
+            <h2>입고 처리</h2>
+            <ReceiveForm poId={po.id} status={po.status} items={po.items} />
+          </section>
+
+          <section className={styles.sectionCard}>
+            <h2>발주 품목</h2>
+            <div className={styles.panel}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>SKU</th>
+                    <th>상품명</th>
+                    <th className={styles.number}>발주수량</th>
+                    <th className={styles.number}>입고수량</th>
+                    <th className={styles.number}>단가</th>
+                    <th className={styles.number}>라인금액</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagedItems.map((item) => (
+                    <tr key={item.id}>
+                      <td>{item.sku}</td>
+                      <td>{item.name}</td>
+                      <td className={styles.number}>{item.ordered_qty}</td>
+                      <td className={styles.number}>{item.received_qty}</td>
+                      <td className={styles.number}>{amountFormatter.format(item.unit_price)}</td>
+                      <td className={styles.number}>{amountFormatter.format(item.line_amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div className={styles.pagination}>
+                <Link href={`/purchase-orders/${po.id}?page=${Math.max(1, itemGroupStart - 10)}`} aria-disabled={itemGroupStart <= 1}>
+                  이전
+                </Link>
+                {itemPageNumbers.map((pageNo) => (
+                  <Link
+                    key={pageNo}
+                    href={`/purchase-orders/${po.id}?page=${pageNo}`}
+                    className={pageNo === itemPage ? styles.activePage : undefined}
+                  >
+                    {pageNo}
+                  </Link>
+                ))}
+                <Link
+                  href={`/purchase-orders/${po.id}?page=${Math.min(itemTotalPages, itemGroupEnd + 1)}`}
+                  aria-disabled={itemGroupEnd >= itemTotalPages}
+                >
+                  다음
+                </Link>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
   );
 }
