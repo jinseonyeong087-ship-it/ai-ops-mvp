@@ -1,18 +1,17 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
 import {
   fetchInventoryItems,
   fetchKpiSummary,
   type InventoryItem,
+  type InventoryItemsResponse,
+  type KpiSummaryResponse,
   type StockStatus,
 } from "@/lib/api";
 import AiAskPanel from "./components/ai-ask-panel";
-
-interface DashboardData {
-  kpi: Awaited<ReturnType<typeof fetchKpiSummary>> | null;
-  inventory: Awaited<ReturnType<typeof fetchInventoryItems>> | null;
-  errorMessage: string | null;
-}
 
 const numberFormatter = new Intl.NumberFormat("ko-KR");
 const currencyFormatter = new Intl.NumberFormat("ko-KR", {
@@ -51,34 +50,75 @@ function buildRiskItems(items: InventoryItem[]): InventoryItem[] {
     .slice(0, 6);
 }
 
-async function getDashboardData(): Promise<DashboardData> {
-  try {
-    const [kpi, inventory] = await Promise.all([
-      fetchKpiSummary(),
-      fetchInventoryItems({ size: 12 }),
-    ]);
+export default function Home() {
+  const [kpi, setKpi] = useState<KpiSummaryResponse | null>(null);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [inventoryMeta, setInventoryMeta] = useState<InventoryItemsResponse["meta"]>({
+    page: 1,
+    size: 10,
+    total: 0,
+  });
+  const [inventoryPage, setInventoryPage] = useState(1);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    return {
-      kpi,
-      inventory,
-      errorMessage: null,
-    };
-  } catch (error) {
-    return {
-      kpi: null,
-      inventory: null,
-      errorMessage:
-        error instanceof Error
-          ? `${error.message} · 백엔드 실행 상태와 API_BASE_URL을 확인하세요.`
-          : "대시보드 데이터를 불러오지 못했습니다.",
-    };
-  }
-}
+  useEffect(() => {
+    let cancelled = false;
 
-export default async function Home() {
-  const { kpi, inventory, errorMessage } = await getDashboardData();
-  const inventoryItems = inventory?.data ?? [];
-  const riskItems = buildRiskItems(inventoryItems);
+    async function loadKpi() {
+      try {
+        const kpiResult = await fetchKpiSummary();
+        if (cancelled) return;
+        setKpi(kpiResult);
+      } catch (error) {
+        if (cancelled) return;
+        setErrorMessage(
+          error instanceof Error
+            ? `${error.message} · 백엔드 실행 상태와 API_BASE_URL을 확인하세요.`
+            : "대시보드 데이터를 불러오지 못했습니다.",
+        );
+      }
+    }
+
+    loadKpi();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadInventory() {
+      try {
+        const inventoryResult = await fetchInventoryItems({ page: inventoryPage, size: 10 });
+        if (cancelled) return;
+        setInventoryItems(inventoryResult.data);
+        setInventoryMeta(inventoryResult.meta);
+        setErrorMessage(null);
+      } catch (error) {
+        if (cancelled) return;
+        setErrorMessage(
+          error instanceof Error
+            ? `${error.message} · 백엔드 실행 상태와 API_BASE_URL을 확인하세요.`
+            : "재고 데이터를 불러오지 못했습니다.",
+        );
+      }
+    }
+
+    loadInventory();
+    return () => {
+      cancelled = true;
+    };
+  }, [inventoryPage]);
+
+  const riskItems = useMemo(() => buildRiskItems(inventoryItems), [inventoryItems]);
+  const inventoryTotalPages = Math.max(1, Math.ceil(inventoryMeta.total / inventoryMeta.size));
+  const inventoryGroupStart = Math.floor((inventoryPage - 1) / 10) * 10 + 1;
+  const inventoryGroupEnd = Math.min(inventoryGroupStart + 9, inventoryTotalPages);
+  const inventoryPageNumbers = Array.from(
+    { length: inventoryGroupEnd - inventoryGroupStart + 1 },
+    (_, idx) => inventoryGroupStart + idx,
+  );
 
   return (
     <div className={styles.page}>
@@ -157,6 +197,32 @@ export default async function Home() {
                   )}
                 </tbody>
               </table>
+            </div>
+            <div className={styles.pagination}>
+              <button
+                type="button"
+                onClick={() => setInventoryPage(Math.max(1, inventoryGroupStart - 10))}
+                disabled={inventoryGroupStart <= 1}
+              >
+                이전
+              </button>
+              {inventoryPageNumbers.map((pageNo) => (
+                <button
+                  key={pageNo}
+                  type="button"
+                  onClick={() => setInventoryPage(pageNo)}
+                  className={pageNo === inventoryPage ? styles.activePageButton : ""}
+                >
+                  {pageNo}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setInventoryPage(Math.min(inventoryTotalPages, inventoryGroupEnd + 1))}
+                disabled={inventoryGroupEnd >= inventoryTotalPages}
+              >
+                다음
+              </button>
             </div>
           </article>
 

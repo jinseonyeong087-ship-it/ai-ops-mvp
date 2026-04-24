@@ -20,10 +20,13 @@ const amountFormatter = new Intl.NumberFormat("ko-KR", {
 
 export default async function PurchaseOrderDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
   const { id } = await params;
+  const { page: pageParam } = await searchParams;
   const poId = Number(id);
 
   if (!Number.isInteger(poId) || poId <= 0) {
@@ -36,6 +39,13 @@ export default async function PurchaseOrderDetailPage({
   }
 
   const po = response.data;
+  const itemPage = Math.max(1, Number(pageParam ?? "1") || 1);
+  const itemPageSize = 10;
+  const itemTotalPages = Math.max(1, Math.ceil(po.items.length / itemPageSize));
+  const itemGroupStart = Math.floor((itemPage - 1) / 10) * 10 + 1;
+  const itemGroupEnd = Math.min(itemGroupStart + 9, itemTotalPages);
+  const itemPageNumbers = Array.from({ length: itemGroupEnd - itemGroupStart + 1 }, (_, idx) => itemGroupStart + idx);
+  const pagedItems = po.items.slice((itemPage - 1) * itemPageSize, itemPage * itemPageSize);
 
   return (
     <main className={styles.page}>
@@ -89,7 +99,7 @@ export default async function PurchaseOrderDetailPage({
             </tr>
           </thead>
           <tbody>
-            {po.items.map((item) => (
+            {pagedItems.map((item) => (
               <tr key={item.id}>
                 <td>{item.sku}</td>
                 <td>{item.name}</td>
@@ -101,6 +111,27 @@ export default async function PurchaseOrderDetailPage({
             ))}
           </tbody>
         </table>
+
+        <div className={styles.pagination}>
+          <Link href={`/purchase-orders/${po.id}?page=${Math.max(1, itemGroupStart - 10)}`} aria-disabled={itemGroupStart <= 1}>
+            이전
+          </Link>
+          {itemPageNumbers.map((pageNo) => (
+            <Link
+              key={pageNo}
+              href={`/purchase-orders/${po.id}?page=${pageNo}`}
+              className={pageNo === itemPage ? styles.activePage : undefined}
+            >
+              {pageNo}
+            </Link>
+          ))}
+          <Link
+            href={`/purchase-orders/${po.id}?page=${Math.min(itemTotalPages, itemGroupEnd + 1)}`}
+            aria-disabled={itemGroupEnd >= itemTotalPages}
+          >
+            다음
+          </Link>
+        </div>
       </section>
     </main>
   );

@@ -8,6 +8,7 @@
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -18,6 +19,20 @@ from app.api.ops import router as ops_router
 from app.api.purchase_orders import router as purchase_orders_router
 
 app = FastAPI(title="AI Ops MVP", version="0.1.0")
+
+# 개발환경 프론트(3000/3001)에서 API 호출 가능하도록 CORS 허용
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.exception_handler(RequestValidationError)

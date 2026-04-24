@@ -165,7 +165,7 @@ export async function fetchPurchaseOrders(params?: {
 }): Promise<PurchaseOrdersResponse> {
   const query = new URLSearchParams({
     page: String(params?.page ?? 1),
-    size: String(params?.size ?? 20),
+    size: String(params?.size ?? 10),
   });
 
   if (params?.status) {

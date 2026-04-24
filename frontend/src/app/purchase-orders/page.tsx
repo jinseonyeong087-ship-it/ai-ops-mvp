@@ -16,8 +16,20 @@ const amountFormatter = new Intl.NumberFormat("ko-KR", {
   maximumFractionDigits: 0,
 });
 
-export default async function PurchaseOrdersPage() {
-  const response = await fetchPurchaseOrders({ size: 30 });
+export default async function PurchaseOrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam ?? "1") || 1);
+  const size = 15;
+
+  const response = await fetchPurchaseOrders({ page, size });
+  const totalPages = Math.max(1, Math.ceil(response.meta.total / size));
+  const groupStart = Math.floor((page - 1) / 10) * 10 + 1;
+  const groupEnd = Math.min(groupStart + 9, totalPages);
+  const pageNumbers = Array.from({ length: groupEnd - groupStart + 1 }, (_, idx) => groupStart + idx);
 
   return (
     <main className={styles.page}>
@@ -42,23 +54,49 @@ export default async function PurchaseOrdersPage() {
             </tr>
           </thead>
           <tbody>
-            {response.data.map((po) => (
-              <tr key={po.id}>
-                <td>{po.po_number}</td>
-                <td>{po.supplier_name}</td>
-                <td>{STATUS_LABEL[po.status]}</td>
-                <td>{po.order_date ?? "-"}</td>
-                <td>{po.expected_date ?? "-"}</td>
-                <td className={styles.number}>{amountFormatter.format(po.total_amount)}</td>
-                <td>
-                  <Link href={`/purchase-orders/${po.id}`} className={styles.detailLink}>
-                    보기
-                  </Link>
+            {response.data.length === 0 ? (
+              <tr>
+                <td colSpan={7} className={styles.emptyCell}>
+                  표시할 발주 데이터가 없습니다.
                 </td>
               </tr>
-            ))}
+            ) : (
+              response.data.map((po) => (
+                <tr key={po.id}>
+                  <td>{po.po_number}</td>
+                  <td>{po.supplier_name}</td>
+                  <td>{STATUS_LABEL[po.status]}</td>
+                  <td>{po.order_date ?? "-"}</td>
+                  <td>{po.expected_date ?? "-"}</td>
+                  <td className={styles.number}>{amountFormatter.format(po.total_amount)}</td>
+                  <td>
+                    <Link href={`/purchase-orders/${po.id}`} className={styles.detailLink}>
+                      보기
+                    </Link>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
+
+        <div className={styles.pagination}>
+          <Link href={`/purchase-orders?page=${Math.max(1, groupStart - 10)}`} aria-disabled={groupStart <= 1}>
+            이전
+          </Link>
+          {pageNumbers.map((pageNo) => (
+            <Link
+              key={pageNo}
+              href={`/purchase-orders?page=${pageNo}`}
+              className={pageNo === page ? styles.activePage : undefined}
+            >
+              {pageNo}
+            </Link>
+          ))}
+          <Link href={`/purchase-orders?page=${Math.min(totalPages, groupEnd + 1)}`} aria-disabled={groupEnd >= totalPages}>
+            다음
+          </Link>
+        </div>
       </div>
     </main>
   );
