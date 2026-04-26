@@ -25,6 +25,10 @@
    - 문서 간 정합성 검증 결과
 9. `07-env-secret-policy.md`
    - 환경변수/비밀값 관리 원칙과 운영 검증 기준
+10. `08-manual-deploy-runbook.md`
+   - 수동 배포/검증/롤백 절차 표준
+11. `09-ci-cd-minimum.md`
+   - 최소 CI 파이프라인과 품질 게이트
 9. `07-env-secrets.md`
    - 환경변수/비밀값 관리 기준(개발/운영 공통)
 

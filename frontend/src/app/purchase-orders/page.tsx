@@ -33,7 +33,7 @@ export default async function PurchaseOrdersPage({
   const pageNumbers = Array.from({ length: groupEnd - groupStart + 1 }, (_, idx) => groupStart + idx);
 
   return (
-    <AppShell styles={styles} activeHref="/purchase-orders" searchPlaceholder="검색 (발주번호/거래처)">
+    <AppShell styles={styles} activeHref="/purchase-orders" searchPlaceholder="Search (PO/Supplier)">
       <main className={styles.page}>
           <section className={styles.sectionCard}>
             <header className={styles.header}>

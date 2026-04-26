@@ -118,7 +118,7 @@ export default function Home() {
   );
 
   return (
-    <AppShell styles={styles} activeHref="/" searchPlaceholder="검색 (SKU/상품명/발주번호)">
+    <AppShell styles={styles} activeHref="/" searchPlaceholder="Search (SKU/Product/PO)">
       <main className={styles.main}>
           <section className={styles.sectionCard}>
             <div className={styles.sectionHeaderRow}>

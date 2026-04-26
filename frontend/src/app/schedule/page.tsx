@@ -57,7 +57,7 @@ export default function SchedulePage() {
   }, [calendarDate, todayStr]);
 
   return (
-    <AppShell styles={styles} activeHref="/schedule" searchPlaceholder="스케줄 검색">
+    <AppShell styles={styles} activeHref="/schedule" searchPlaceholder="Search schedules">
         <main className={styles.page}>
           <section className={styles.sectionCard}>
             <header className={styles.header}><h1>스케줄</h1><Link href="/">← 대시보드</Link></header>
@@ -112,7 +112,7 @@ export default function SchedulePage() {
                 <label className={styles.field}>실행일시<input name="next_run_at" type="datetime-local" required /></label>
               </div>
               <label className={styles.field}>메모<textarea name="payload_note" rows={2} /></label>
-              <div className={styles.actions}><button className={styles.primaryBtn}>저장</button></div>
+              <div className={styles.actions}><button className={styles.primaryBtn}>Save</button></div>
             </form>
             {message ? <p>{message}</p> : null}
           </section>

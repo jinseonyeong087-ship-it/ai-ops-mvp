@@ -27,7 +27,7 @@ export default function SalesPage() {
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   return (
-    <AppShell styles={styles} activeHref="/sales" searchPlaceholder="판매현황 검색">
+    <AppShell styles={styles} activeHref="/sales" searchPlaceholder="Search sales">
       <main className={styles.page}>
           <section className={styles.sectionCard}>
             <header className={styles.header}><h1>판매 현황</h1><Link href="/">← 대시보드</Link></header>
@@ -56,7 +56,7 @@ export default function SalesPage() {
                 <label className={styles.field}>총매출<input name="gross_sales" type="number" min={0} defaultValue={200000} /></label>
                 <label className={styles.field}>할인금액<input name="discount_amount" type="number" min={0} defaultValue={10000} /></label>
               </div>
-              <div className={styles.actions}><button className={styles.primaryBtn}>저장</button></div>
+              <div className={styles.actions}><button className={styles.primaryBtn}>Save</button></div>
             </form>
             {message ? <p>{message}</p> : null}
           </section>

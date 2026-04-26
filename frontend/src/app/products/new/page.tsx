@@ -44,7 +44,7 @@ export default function ProductNewPage() {
   }
 
   return (
-    <AppShell styles={styles} activeHref="/products/new" searchPlaceholder="상품 검색">
+    <AppShell styles={styles} activeHref="/products/new" searchPlaceholder="Search products">
       <main className={styles.page}>
           <section className={styles.sectionCard}>
             <header className={styles.header}><h1>상품 등록</h1><Link href="/">← 대시보드</Link></header>
@@ -65,7 +65,7 @@ export default function ProductNewPage() {
                 <label className={styles.field}>창고<select name="warehouse_id">{options.warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</select></label>
                 <label className={styles.field}>초기 재고<input name="initial_qty" type="number" min={0} defaultValue={0} /></label>
               </div>
-              <div className={styles.actions}><button className={styles.primaryBtn} type="submit">저장</button></div>
+              <div className={styles.actions}><button className={styles.primaryBtn} type="submit">Save</button></div>
             </form>
             {msg ? <p>{msg}</p> : null}
           </section>

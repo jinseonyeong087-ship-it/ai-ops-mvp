@@ -2,62 +2,56 @@
 
 사내 운영 효율화를 위한 AI 기반 업무 시스템 MVP입니다.
 
-## 목표
-- 반복 업무 자동화
-- 운영 데이터(재고/발주/매출) 가시화
-- 리포트 자동 생성
-- AI 질의 기반 업무 지원
+## 이 웹이 하는 일
+이 프로젝트는 **사내 운영팀을 위한 웹 대시보드**입니다.
+재고/발주/판매 데이터를 한 화면에서 보고, 필요한 운영 액션(입고 처리, 상품 등록, 스케줄 등록 등)을 바로 실행할 수 있게 만든 AI Ops MVP입니다.
 
-## 권장 스택
-- Frontend: Next.js (dashboard)
+## 어떤 사용자에게 필요한가
+- 재고 부족/품절 위험을 빠르게 파악해야 하는 운영 담당자
+- 발주 상태와 입고 진행을 매일 점검하는 구매/물류 담당자
+- 일일 매출과 채널별 흐름을 확인하는 관리자
+
+## 핵심 기능
+- **대시보드:** KPI 요약, 재고 리스트, 재고 위험 위젯
+- **발주 관리:** 발주 목록/상세 조회, 입고 처리
+- **상품 관리:** 신규 상품 등록
+- **스케줄 관리:** 운영 작업 스케줄 등록/조회
+- **판매 현황:** 일별 판매 데이터 등록/조회
+- **AI 질의 패널:** 운영 데이터에 대한 질의 응답 (`/api/ops/ask`)
+
+## 기술 구성
+- Frontend: Next.js
 - Backend: FastAPI
 - DB: PostgreSQL
-- Queue(optional): Redis + worker
+- 배포/운영: Docker Compose + Makefile
+- CI: GitHub Actions (백엔드 스모크 + 프론트 lint/build)
 
-## MVP 기능 (1차)
-1. 자동화 요청 등록/관리
-2. KPI 대시보드(재고/발주/매출)
-3. AI 업무 질의 API (요약/분석)
-4. 일간 리포트 자동 생성
+## 현재 상태 요약
+- MVP 핵심 기능 구현 완료
+- 운영 환경변수/비밀값 관리 정책 확정
+- 수동 배포 런북 문서화 완료
+- 최소 CI/CD 파이프라인 구성 완료
 
-## 현재 구현 상태 (2026-04-23)
+## 서비스 소개
+AI Ops MVP는 운영팀이 매일 반복하는 재고/발주/판매 점검 업무를 한 곳에서 처리할 수 있도록 만든 **운영 대시보드 웹 서비스**입니다.
 
-### 완료
-- [x] DB 마이그레이션(Alembic) 초기 세팅
-- [x] 초기 스키마 생성 (업무 테이블 9개 + `alembic_version`)
-- [x] 안전 시드 데이터 약 8천 건 입력 스크립트
-- [x] `POST /api/ops/ask` (mock)
-- [x] `GET /api/kpi/summary` 구현
-- [x] 재고/발주 핵심 API 코드 한국어 주석 보강 (유지보수성 개선)
-- [x] 스모크 테스트 재검증 (`make smoke` PASS)
+이 웹에서 할 수 있는 핵심 작업:
+- 현재 재고와 품절 위험 SKU를 즉시 확인
+- 발주 상태를 조회하고 입고를 반영
+- 상품 신규 등록
+- 운영 스케줄 등록 및 조회
+- 일별 판매 데이터 입력/확인
+- 운영 질의를 AI 패널로 빠르게 확인
 
-### 다음 구현 순서 (우선순위)
-- [x] 1. `GET /api/inventory/items` (검색/필터/정렬/페이지네이션)
-- [x] 2. `POST /api/inventory/movements` (입출고/조정 등록 + 유효성 검증)
-- [x] 3. `GET /api/inventory/movements` (이력 조회)
-- [x] 4. `POST /api/purchase-orders` (발주 생성)
-- [x] 5. `GET /api/purchase-orders` (발주 목록)
-- [x] 6. `GET /api/purchase-orders/{po_id}` (발주 상세)
-- [x] 7. `PATCH /api/purchase-orders/{po_id}/status` (상태 변경)
-- [x] 8. `POST /api/purchase-orders/{po_id}/receive` (입고 처리 + 재고 반영)
+## 실제 UI 화면
+### 1) 대시보드
+![대시보드 화면](docs/images/ui-dashboard.png)
 
-### 인프라/운영 (MVP 필수)
-- [x] 9. `docker-compose`에 PostgreSQL 서비스 추가 및 환경변수 연동
-- [x] 10. 백엔드 컨테이너 실행/마이그레이션 명령 정리
-- [x] 11. `.env.example`와 실제 실행 스크립트 동기화
-- [x] 12. 기본 에러 핸들링 및 입력 검증 표준화
-- [x] 13. 핵심 API 스모크 테스트 추가
+### 2) 발주 목록
+![발주 목록 화면](docs/images/ui-purchase-orders.png)
 
-### 프론트엔드 (대시보드)
-- [x] 14. Next.js 초기 프로젝트 구성
-- [x] 15. KPI 카드 + 재고 테이블 + 위험 위젯 화면 구현
-- [x] 16. 발주 목록/상세/입고 처리 UI 구현
-- [x] 17. AI 질의 패널 연결 (`POST /api/ops/ask`)
-
-### 배포 준비
-- [x] 18. 운영용 환경변수/비밀값 관리 방식 확정 (`.env.example` + `scripts/validate_env.sh` + compose 필수값 검증)
-- [ ] 19. 배포 절차 문서화(수동 배포 기준)
-- [ ] 20. CI/CD 최소 파이프라인(테스트/빌드) 구성
+### 3) 판매 현황
+![판매 현황 화면](docs/images/ui-sales.png)
 
 ## 프로젝트 구조
 ```bash

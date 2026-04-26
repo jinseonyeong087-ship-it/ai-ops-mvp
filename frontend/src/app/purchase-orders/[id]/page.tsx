@@ -49,7 +49,7 @@ export default async function PurchaseOrderDetailPage({
   const pagedItems = po.items.slice((itemPage - 1) * itemPageSize, itemPage * itemPageSize);
 
   return (
-    <AppShell styles={styles} activeHref="/purchase-orders" searchPlaceholder="검색 (SKU/상품명/발주번호)">
+    <AppShell styles={styles} activeHref="/purchase-orders" searchPlaceholder="Search (SKU/Product/PO)">
       <main className={styles.page}>
           <section className={styles.sectionCard}>
             <header className={styles.header}>
