@@ -4,15 +4,24 @@
 COMPOSE_FILE=infra/docker-compose.yml
 ENV_FILE?=.env
 
-.PHONY: init-env check-env up down logs ps migrate seed restart smoke
+.PHONY: init-env check-env validate-env validate-env-prod up down logs ps migrate seed restart smoke
 
 # .env 초기 생성 (.env.example 기반)
 init-env:
 	@if [ ! -f .env ]; then cp .env.example .env; echo "[ok] .env created from .env.example"; else echo "[skip] .env already exists"; fi
 
-# 실행 전 필수 파일(.env) 존재 확인
+# 실행 전 필수 파일(.env) 존재 확인 + 최소 키 검증
 check-env:
 	@if [ ! -f $(ENV_FILE) ]; then echo "[error] $(ENV_FILE) not found. run: make init-env"; exit 1; fi
+	@./scripts/validate_env.sh $(ENV_FILE) development
+
+# 개발 환경 변수 검증 수동 실행
+validate-env:
+	@./scripts/validate_env.sh $(ENV_FILE) development
+
+# 운영 환경 변수 검증 수동 실행
+validate-env-prod:
+	@./scripts/validate_env.sh $(ENV_FILE) production
 
 # postgres + backend 컨테이너 기동
 up: check-env

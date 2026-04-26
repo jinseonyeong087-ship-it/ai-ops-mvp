@@ -55,7 +55,7 @@
 - [x] 17. AI 질의 패널 연결 (`POST /api/ops/ask`)
 
 ### 배포 준비
-- [ ] 18. 운영용 환경변수/비밀값 관리 방식 확정
+- [x] 18. 운영용 환경변수/비밀값 관리 방식 확정 (`.env.example` + `scripts/validate_env.sh` + compose 필수값 검증)
 - [ ] 19. 배포 절차 문서화(수동 배포 기준)
 - [ ] 20. CI/CD 최소 파이프라인(테스트/빌드) 구성
 
@@ -124,6 +124,12 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```bash
 # 프로젝트 루트에서 실행
 make init-env
+
+# 환경변수 검증 (개발)
+make validate-env
+
+# 환경변수 검증 (운영 기준 placeholder/빈값 차단)
+make validate-env-prod
 
 # 컨테이너 기동 (postgres + backend)
 make up

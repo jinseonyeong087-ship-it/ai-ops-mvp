@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-ai_ops_mvp_dev}
       POSTGRES_USER: ${POSTGRES_USER:-aiops}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aiops1234}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
       - aiops_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -27,9 +27,13 @@ services:
     ports:
       - "${API_PORT:-8000}:8000"
     environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-aiops}:${POSTGRES_PASSWORD:-aiops1234}@postgres:5432/${POSTGRES_DB:-ai_ops_mvp_dev}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       API_HOST: ${API_HOST:-0.0.0.0}
       API_PORT: 8000
+      APP_ENV: ${APP_ENV:-development}
+      AI_PROVIDER: ${AI_PROVIDER:-openai}
+      AI_MODEL: ${AI_MODEL:-gpt-4o-mini}
+      AI_API_KEY: ${AI_API_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
