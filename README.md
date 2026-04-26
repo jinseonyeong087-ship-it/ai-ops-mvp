@@ -1,160 +1,196 @@
 # AI Ops MVP
 
-사내 운영 효율화를 위한 AI 기반 업무 시스템 MVP입니다.
+Docker 기반으로 실행되는 **사내 운영관리 웹 애플리케이션**입니다.  
+재고/발주/판매 데이터를 한 화면에서 관리하고, 운영자가 빠르게 의사결정할 수 있도록 KPI/위험지표/업무 입력 UI를 제공합니다.
 
-## 이 웹이 하는 일
-이 프로젝트는 **사내 운영팀을 위한 웹 대시보드**입니다.
-재고/발주/판매 데이터를 한 화면에서 보고, 필요한 운영 액션(입고 처리, 상품 등록, 스케줄 등록 등)을 바로 실행할 수 있게 만든 AI Ops MVP입니다.
-
-## 어떤 사용자에게 필요한가
-- 재고 부족/품절 위험을 빠르게 파악해야 하는 운영 담당자
-- 발주 상태와 입고 진행을 매일 점검하는 구매/물류 담당자
-- 일일 매출과 채널별 흐름을 확인하는 관리자
-
-## 핵심 기능
-- **대시보드:** KPI 요약, 재고 리스트, 재고 위험 위젯
-- **발주 관리:** 발주 목록/상세 조회, 입고 처리
-- **상품 관리:** 신규 상품 등록
-- **스케줄 관리:** 운영 작업 스케줄 등록/조회
-- **판매 현황:** 일별 판매 데이터 등록/조회
-- **AI 질의 패널:** 운영 데이터에 대한 질의 응답 (`/api/ops/ask`)
-
-## 기술 구성
-- Frontend: Next.js
+실행 환경 기준:
+- Local: Docker Compose
+- CI: GitHub Actions
 - Backend: FastAPI
+- Frontend: Next.js
 - DB: PostgreSQL
-- 배포/운영: Docker Compose + Makefile
-- CI: GitHub Actions (백엔드 스모크 + 프론트 lint/build)
 
-## 현재 상태 요약
-- MVP 핵심 기능 구현 완료
-- 운영 환경변수/비밀값 관리 정책 확정
-- 수동 배포 런북 문서화 완료
-- 최소 CI/CD 파이프라인 구성 완료
+---
 
 ## 서비스 소개
-AI Ops MVP는 운영팀이 매일 반복하는 재고/발주/판매 점검 업무를 한 곳에서 처리할 수 있도록 만든 **운영 대시보드 웹 서비스**입니다.
 
-이 웹에서 할 수 있는 핵심 작업:
-- 현재 재고와 품절 위험 SKU를 즉시 확인
-- 발주 상태를 조회하고 입고를 반영
-- 상품 신규 등록
-- 운영 스케줄 등록 및 조회
-- 일별 판매 데이터 입력/확인
-- 운영 질의를 AI 패널로 빠르게 확인
+이 서비스는 운영팀의 반복 업무를 줄이고, 데이터 기반으로 상태를 점검할 수 있게 만드는 웹입니다.
+
+주요 기능:
+- 대시보드 KPI (재고/매출/발주 지연)
+- 재고 리스트 및 위험 위젯(품절/품절 임박)
+- 발주 목록/상세/입고 처리
+- 상품 등록
+- 스케줄 등록/조회
+- 판매현황 등록/조회
+- AI 질의 패널 (`POST /api/ops/ask`)
+
+---
+
+## Components
+
+- Frontend (`frontend/src/app`)
+  - Next.js App Router 기반 운영 UI
+- Frontend API client (`frontend/src/lib/api.ts`)
+  - Backend API 호출/응답 타입 관리
+- Backend API (`backend/app/main.py`, `backend/app/api/*`)
+  - KPI/재고/발주/운영 API 제공
+- DB Migration (`backend/alembic`, `backend/alembic.ini`)
+  - 스키마 버전 관리
+- Infra (`infra/docker-compose.yml`)
+  - postgres + backend 컨테이너 실행
+- CI (`.github/workflows/ci.yml`)
+  - backend smoke + frontend lint/build 검증
+
+---
+
+## System Flow
+
+```mermaid
+flowchart LR
+A[운영 사용자] -->|브라우저 접속| B[Next.js Frontend]
+B -->|REST API| C[FastAPI Backend]
+C -->|SQL| D[(PostgreSQL)]
+B -->|AI 질의| C
+
+E[GitHub Push/PR] --> F[GitHub Actions CI]
+F -->|backend smoke| C
+F -->|frontend lint/build| B
+```
+
+---
+
+## Sequence Diagram
+
+```mermaid
+sequenceDiagram
+autonumber
+participant U as User
+participant FE as Frontend
+participant BE as Backend API
+participant DB as PostgreSQL
+
+U->>FE: 대시보드 접속
+FE->>BE: GET /api/kpi/summary
+BE->>DB: KPI 집계 쿼리
+DB-->>BE: 집계 결과
+BE-->>FE: KPI JSON
+FE-->>U: 카드/테이블/위험 위젯 렌더링
+
+U->>FE: 발주 입고 처리
+FE->>BE: POST /api/purchase-orders/{id}/receive
+BE->>DB: 발주/재고 트랜잭션 반영
+DB-->>BE: 처리 성공
+BE-->>FE: 결과 응답
+FE-->>U: 상태 업데이트
+```
+
+---
 
 ## 실제 UI 화면
-### 1) 대시보드
+
+### 1) Dashboard
 ![대시보드 화면](docs/images/ui-dashboard.png)
 
-### 2) 발주 목록
+### 2) Purchase Orders
 ![발주 목록 화면](docs/images/ui-purchase-orders.png)
 
-### 3) 판매 현황
+### 3) Sales
 ![판매 현황 화면](docs/images/ui-sales.png)
 
-## 프로젝트 구조
-```bash
-ai-ops-mvp/
-├─ backend/
-│  ├─ alembic.ini
-│  ├─ alembic/
-│  │  ├─ env.py
-│  │  ├─ script.py.mako
-│  │  └─ versions/
-│  │     └─ 20260422_0001_init_schema.py
-│  ├─ app/
-│  │  ├─ main.py
-│  │  ├─ api/
-│  │  │  ├─ health.py
-│  │  │  ├─ ops.py
-│  │  │  └─ kpi.py
-│  │  ├─ models/
-│  │  │  └─ schemas.py
-│  │  └─ services/
-│  │     └─ ai_service.py
-│  ├─ scripts/
-│  │  └─ seed_safe_8k.sql
-│  └─ requirements.txt
-├─ frontend/
-├─ infra/
-├─ docs/
-│  ├─ INDEX.md
-│  ├─ 00-charter.md
-│  ├─ 01-mvp-scope.md
-│  ├─ 02-domain-rules.md
-│  ├─ db-spec.md
-│  ├─ api-spec-v0.md
-│  ├─ 04-ui-ux-spec.md
-│  ├─ 05-implementation-plan.md
-│  ├─ 06-consistency-check.md
-│  └─ roadmap.md
-├─ .env.example
-├─ Makefile
-└─ .gitignore
+---
+
+## Security Check (전체 서비스 기준 점검 결과)
+
+점검일: 2026-04-26
+
+### 1) Secret/환경변수 관리
+- `.env`, `.env.*` git ignore 적용
+- `.env.example` 템플릿 분리
+- 운영 배포 전 검증 스크립트 적용: `scripts/validate_env.sh`
+- `make validate-env-prod`에서 placeholder 차단
+- compose 필수값 강제: `POSTGRES_PASSWORD`, `DATABASE_URL`
+
+### 2) 자동 검증/품질 게이트
+- CI 파이프라인 적용: `.github/workflows/ci.yml`
+  - backend smoke
+  - frontend lint/build
+
+### 3) 취약점 스캔 결과
+- Python (`pip-audit`) 점검 수행
+  - `python-dotenv` 취약점 대응 완료: `1.0.1 -> 1.2.2`
+  - `fastapi` 상향: `0.115.0 -> 0.116.1`
+  - 잔여 이슈: `starlette` 1건 (FastAPI 의존성 상한으로 즉시 상향 불가)
+- Node (`npm audit --omit=dev`) 점검 수행
+  - `postcss` 관련 moderate 경고 표시됨(Next 트리 경유)
+
+### 4) 보안 권고(다음 단계)
+- Reverse proxy/nginx 레이어에서 업로드 크기 제한
+- WAF/Rate Limit 적용
+- SAST + dependency scan(주간) 자동화
+- 운영 키 정기 회전 및 권한 최소화
+
+---
+
+## Runtime and Operations
+
+### 환경변수 예시
+```env
+APP_ENV=development
+API_HOST=0.0.0.0
+API_PORT=8000
+POSTGRES_DB=ai_ops_mvp_dev
+POSTGRES_USER=aiops
+POSTGRES_PASSWORD=__REPLACE_WITH_STRONG_PASSWORD__
+DATABASE_URL=postgresql+psycopg://aiops:__REPLACE_WITH_STRONG_PASSWORD__@postgres:5432/ai_ops_mvp_dev
+AI_PROVIDER=openai
+AI_MODEL=gpt-4o-mini
+AI_API_KEY=__SET_LOCALLY__
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
 ```
 
-## 빠른 시작 (backend)
+### Docker 실행
 ```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-
-# WSL 로컬 PostgreSQL 기준
-export DATABASE_URL='postgresql+psycopg://<DB_USER>:<DB_PASSWORD>@localhost:5432/ai_ops_mvp_dev'
-
-# DB 스키마 반영
-alembic upgrade head
-
-# 시드 데이터 입력(선택)
-PGPASSWORD='<DB_PASSWORD>' psql -h localhost -U <DB_USER> -d ai_ops_mvp_dev -f scripts/seed_safe_8k.sql
-
-# API 실행
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-## Docker 실행/마이그레이션 명령 (권장)
-```bash
-# 프로젝트 루트에서 실행
 make init-env
-
-# 환경변수 검증 (개발)
 make validate-env
-
-# 환경변수 검증 (운영 기준 placeholder/빈값 차단)
-make validate-env-prod
-
-# 컨테이너 기동 (postgres + backend)
 make up
-
-# DB 마이그레이션 적용
 make migrate
-
-# 시드 입력(선택)
 make seed
-
-# 핵심 API 스모크 테스트
 make smoke
-
-# 상태/로그 확인
-make ps
-make logs
-
-# 종료
-make down
 ```
 
-직접 실행이 필요하면 아래 명령도 동일합니다.
+### 운영 배포 전 검증
 ```bash
-docker compose -f infra/docker-compose.yml --env-file .env up -d
-docker compose -f infra/docker-compose.yml --env-file .env exec backend alembic upgrade head
+make validate-env-prod ENV_FILE=.env
 ```
 
-## API 엔드포인트
+---
+
+## API Endpoints (핵심)
 - `GET /health`
 - `POST /api/ops/ask`
 - `GET /api/kpi/summary`
+- `GET /api/inventory/items`
+- `GET /api/purchase-orders`
+- `POST /api/purchase-orders/{po_id}/receive`
+- `GET /api/sales/daily`
+- `POST /api/sales/daily`
 
-## 설계 문서 시작점
-- `docs/INDEX.md` (문서 순서/수정 규칙)
+---
+
+## Key Files
+- `frontend/src/app/page.tsx`
+- `frontend/src/app/components/app-shell.tsx`
+- `frontend/src/lib/api.ts`
+- `backend/app/main.py`
+- `backend/app/api/kpi.py`
+- `backend/app/api/purchase_orders.py`
+- `infra/docker-compose.yml`
+- `.github/workflows/ci.yml`
+- `docs/08-manual-deploy-runbook.md`
+- `docs/09-ci-cd-minimum.md`
+
+---
+
+## 문서 시작점
+- `docs/INDEX.md`
