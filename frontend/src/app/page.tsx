@@ -12,6 +12,7 @@ import {
   type StockStatus,
 } from "@/lib/api";
 import AiAskPanel from "./components/ai-ask-panel";
+import AppShell from "./components/app-shell";
 
 const numberFormatter = new Intl.NumberFormat("ko-KR");
 const currencyFormatter = new Intl.NumberFormat("ko-KR", {
@@ -49,16 +50,6 @@ function buildRiskItems(items: InventoryItem[]): InventoryItem[] {
     })
     .slice(0, 8);
 }
-
-const SIDE_MENUS = [
-  { label: "Dashboard", href: "/" },
-  { label: "상품 등록", href: "/products/new" },
-  { label: "주문/배송", href: "/purchase-orders" },
-  { label: "스케줄", href: "/schedule" },
-  { label: "판매 현황", href: "/sales" },
-  { label: "회원관리", href: "#" },
-  { label: "고객문의", href: "#" },
-];
 
 export default function Home() {
   const [kpi, setKpi] = useState<KpiSummaryResponse | null>(null);
@@ -127,28 +118,8 @@ export default function Home() {
   );
 
   return (
-    <div className={styles.shell}>
-      <aside className={styles.sidebar}>
-        <div className={styles.logo}>AI OPS</div>
-        <nav>
-          {SIDE_MENUS.map((menu) => (
-            <Link key={menu.label} href={menu.href} className={menu.href === "/" ? styles.menuActive : styles.menu}>
-              {menu.label}
-            </Link>
-          ))}
-        </nav>
-      </aside>
-
-      <div className={styles.workspace}>
-        <header className={styles.topbar}>
-          <input className={styles.search} placeholder="검색 (SKU/상품명/발주번호)" />
-          <div className={styles.topActions}>
-            <span>🔔</span>
-            <span>admin ▾</span>
-          </div>
-        </header>
-
-        <main className={styles.main}>
+    <AppShell styles={styles} activeHref="/" searchPlaceholder="검색 (SKU/상품명/발주번호)">
+      <main className={styles.main}>
           <section className={styles.sectionCard}>
             <div className={styles.sectionHeaderRow}>
               <h1>Dashboard</h1>
@@ -289,9 +260,8 @@ export default function Home() {
             </ul>
           </section>
 
-          <AiAskPanel />
-        </main>
-      </div>
-    </div>
+        <AiAskPanel />
+      </main>
+    </AppShell>
   );
 }

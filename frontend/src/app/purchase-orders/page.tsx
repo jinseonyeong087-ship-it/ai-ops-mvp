@@ -1,5 +1,6 @@
 import Link from "next/link";
 import styles from "./purchase-orders.module.css";
+import AppShell from "@/app/components/app-shell";
 import { fetchPurchaseOrders, type PurchaseOrderStatus } from "@/lib/api";
 
 const STATUS_LABEL: Record<PurchaseOrderStatus, string> = {
@@ -9,16 +10,6 @@ const STATUS_LABEL: Record<PurchaseOrderStatus, string> = {
   RECEIVED: "입고완료",
   CANCELED: "취소",
 };
-
-const SIDE_MENUS = [
-  { label: "Dashboard", href: "/" },
-  { label: "상품 등록", href: "/products/new" },
-  { label: "주문/배송", href: "/purchase-orders" },
-  { label: "스케줄", href: "/schedule" },
-  { label: "판매 현황", href: "/sales" },
-  { label: "회원관리", href: "#" },
-  { label: "고객문의", href: "#" },
-];
 
 const amountFormatter = new Intl.NumberFormat("ko-KR", {
   style: "currency",
@@ -42,32 +33,8 @@ export default async function PurchaseOrdersPage({
   const pageNumbers = Array.from({ length: groupEnd - groupStart + 1 }, (_, idx) => groupStart + idx);
 
   return (
-    <div className={styles.shell}>
-      <aside className={styles.sidebar}>
-        <div className={styles.logo}>AI OPS</div>
-        <nav>
-          {SIDE_MENUS.map((menu) => (
-            <Link
-              key={menu.label}
-              href={menu.href}
-              className={menu.href === "/purchase-orders" ? styles.menuActive : styles.menu}
-            >
-              {menu.label}
-            </Link>
-          ))}
-        </nav>
-      </aside>
-
-      <div className={styles.workspace}>
-        <header className={styles.topbar}>
-          <input className={styles.search} placeholder="검색 (발주번호/거래처)" />
-          <div className={styles.topActions}>
-            <span>🔔</span>
-            <span>admin ▾</span>
-          </div>
-        </header>
-
-        <main className={styles.page}>
+    <AppShell styles={styles} activeHref="/purchase-orders" searchPlaceholder="검색 (발주번호/거래처)">
+      <main className={styles.page}>
           <section className={styles.sectionCard}>
             <header className={styles.header}>
               <h1>발주 목록</h1>
@@ -138,8 +105,7 @@ export default async function PurchaseOrdersPage({
               </div>
             </div>
           </section>
-        </main>
-      </div>
-    </div>
+      </main>
+    </AppShell>
   );
 }

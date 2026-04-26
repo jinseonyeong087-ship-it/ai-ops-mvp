@@ -3,15 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import styles from "@/app/admin-shell.module.css";
+import AppShell from "@/app/components/app-shell";
 import { createProduct, fetchMetaOptions } from "@/lib/api";
-
-const SIDE_MENUS = [
-  { label: "Dashboard", href: "/" },
-  { label: "상품 등록", href: "/products/new" },
-  { label: "주문/배송", href: "/purchase-orders" },
-  { label: "스케줄", href: "/schedule" },
-  { label: "판매 현황", href: "/sales" },
-];
 
 export default function ProductNewPage() {
   const [options, setOptions] = useState<{ categories: string[]; units: string[]; warehouses: Array<{ id: number; name: string }> }>({
@@ -51,23 +44,8 @@ export default function ProductNewPage() {
   }
 
   return (
-    <div className={styles.shell}>
-      <aside className={styles.sidebar}>
-        <div className={styles.logo}>AI OPS</div>
-        <nav>
-          {SIDE_MENUS.map((menu) => (
-            <Link key={menu.label} href={menu.href} className={menu.href === "/products/new" ? styles.menuActive : styles.menu}>
-              {menu.label}
-            </Link>
-          ))}
-        </nav>
-      </aside>
-      <div className={styles.workspace}>
-        <header className={styles.topbar}>
-          <input className={styles.search} placeholder="상품 검색" />
-          <div className={styles.topActions}><span>🔔</span><span>admin ▾</span></div>
-        </header>
-        <main className={styles.page}>
+    <AppShell styles={styles} activeHref="/products/new" searchPlaceholder="상품 검색">
+      <main className={styles.page}>
           <section className={styles.sectionCard}>
             <header className={styles.header}><h1>상품 등록</h1><Link href="/">← 대시보드</Link></header>
             <form
@@ -91,8 +69,7 @@ export default function ProductNewPage() {
             </form>
             {msg ? <p>{msg}</p> : null}
           </section>
-        </main>
-      </div>
-    </div>
+      </main>
+    </AppShell>
   );
 }

@@ -3,15 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import styles from "@/app/admin-shell.module.css";
+import AppShell from "@/app/components/app-shell";
 import { createSchedule, fetchMetaOptions, fetchSchedules, type ScheduleRow } from "@/lib/api";
-
-const SIDE_MENUS = [
-  { label: "Dashboard", href: "/" },
-  { label: "상품 등록", href: "/products/new" },
-  { label: "주문/배송", href: "/purchase-orders" },
-  { label: "스케줄", href: "/schedule" },
-  { label: "판매 현황", href: "/sales" },
-];
 
 const WEEK_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -64,24 +57,7 @@ export default function SchedulePage() {
   }, [calendarDate, todayStr]);
 
   return (
-    <div className={styles.shell}>
-      <aside className={styles.sidebar}>
-        <div className={styles.logo}>AI OPS</div>
-        <nav>
-          {SIDE_MENUS.map((menu) => (
-            <Link key={menu.label} href={menu.href} className={menu.href === "/schedule" ? styles.menuActive : styles.menu}>
-              {menu.label}
-            </Link>
-          ))}
-        </nav>
-      </aside>
-
-      <div className={styles.workspace}>
-        <header className={styles.topbar}>
-          <input className={styles.search} placeholder="스케줄 검색" />
-          <div className={styles.topActions}><span>🔔</span><span>admin ▾</span></div>
-        </header>
-
+    <AppShell styles={styles} activeHref="/schedule" searchPlaceholder="스케줄 검색">
         <main className={styles.page}>
           <section className={styles.sectionCard}>
             <header className={styles.header}><h1>스케줄</h1><Link href="/">← 대시보드</Link></header>
@@ -155,7 +131,6 @@ export default function SchedulePage() {
             </div>
           </section>
         </main>
-      </div>
-    </div>
+    </AppShell>
   );
 }
